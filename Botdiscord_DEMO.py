@@ -6,13 +6,10 @@ from tensorflow.keras.models import load_model
 
 def prepare_input_for_discord(input_string):
 
-    # Regular expression to match phone numbers
-    pattern = r"\d{3}[-\s]?\d{3}[-\s]?\d{4}"
-    
-    # Replace phone numbers with PhoneNumber
-    input_string = re.sub(pattern, "PhoneNumber", input_string)
 
-    # Remove unnecessary characters
+    pattern = r"\d{3}[-\s]?\d{3}[-\s]?\d{4}"
+    input_string = re.sub(pattern, "PhoneNumber", input_string)
+    
     input_string = input_string.strip()
     input_string = input_string.replace(" ", "")
     input_string = input_string.replace("\n", "")
@@ -45,17 +42,9 @@ def predict_action(input_string):
 
     action_label = ['enquire', 'report', 'cancel', 'buy', 'activate', 'request','garbage', 'change']
     num_to_action_label_map = dict(zip(range(len(action_label)), action_label))
-
-    # Load the model from file
     model_action = load_model('model_action.h5')
-
-    # Prepare input for the model
     input_after = prepare_input_for_discord(input_string)
-
-    # Use the model for prediction
     prediction = model_action.predict(input_after)
-
-    # Get predicted class label
     num_to_action_label_map = dict(zip(range(len(action_label)), action_label))
     predicted_class_index = np.argmax(prediction)
     predicted_class_label = num_to_action_label_map[predicted_class_index]
