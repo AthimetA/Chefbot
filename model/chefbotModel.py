@@ -87,11 +87,12 @@ class MainSubclassPrediction(Model):
         self.sub_class_concatenate_layer = Concatenate(axis=-1,name = 'sub_class_output')
         
         # Get Training model
-        self.model = self.get_model()
+        self.training_model = self.get_training_model()
         self.main_class_inference_model = self.get_mainclass_inference_model()
         self.sub_class_inference_model = self.get_subclass_inference_model()
+        self.interaction_model = self.get_interaction_model()
         
-    def get_model(self):
+    def get_training_model(self):
         # Define inputs
         text_input_layer  = Input(shape=(self.max_len, self.word_vector_size), dtype='float32', name='text_input_layer')
         main_class_input_layer  = Input(shape=(len(self.main_class_label),), dtype='float32', name='main_class_input_layer')
@@ -170,6 +171,75 @@ class MainSubclassPrediction(Model):
                     'sub_class_output': 'accuracy'}
         optimizer = Adam(learning_rate=0.001)
         model.compile(optimizer=optimizer, loss=loss, loss_weights=loss_weights, metrics=metrics)
+        return model
+    
+    def get_interaction_model(self):
+        # Define inputs
+        text_input_layer  = Input(shape=(self.max_len, self.word_vector_size), dtype='float32', name='text_input_layer')
+        main_class_input_layer  = Input(shape=(len(self.main_class_label),), dtype='float32', name='main_class_input_layer')
+        # Define Main class prediction sub-model
+        masking_layer = self.main_class_masking_layer(text_input_layer)
+        conv1d_layer_1 = self.main_class_conv1d_layer_1(masking_layer)
+        bi_lstm_layer_1 = self.main_class_bi_lstm_layer_1(conv1d_layer_1)
+        # This layer will connect to sub class prediction sub-model
+        dropout_layer_1 = self.main_class_dropout_layer_1(bi_lstm_layer_1)
+        
+        # Define Sub class prediction sub-model
+        main_class_input_argmax = self.sub_class_main_class_input_argmax_layer(main_class_input_layer)
+        
+        # Sub class of main class 0
+        # Get binary mask of main class 0
+        subclass_0_binary_mask =  K.cast(K.equal(main_class_input_argmax, 0), dtype='float32')
+        subclass_0_reshape_binary_mask_1= self.sub_class_0_reshape_binary_mask_1(subclass_0_binary_mask)
+        subclass_0_repeat_binary_mask_1 = self.sub_class_0_repeat_binary_mask_1(subclass_0_reshape_binary_mask_1)
+        subclass_0_reshape_binary_mask_2 = self.sub_class_0_reshape_binary_mask_2(subclass_0_repeat_binary_mask_1)
+        subclass_0_repeat_binary_mask_2 = self.sub_class_0_repeat_binary_mask_2(subclass_0_reshape_binary_mask_2)
+        # Apply binary mask to dropout layer
+        subclass_0_masked_dense_layer = self.sub_class_0_masked_dense_layer([dropout_layer_1, subclass_0_repeat_binary_mask_2])
+        # Sub class of main class 0 prediction
+        subclass_0_bi_lstm_layer_1 = self.sub_class_0_bi_lstm_layer_1(subclass_0_masked_dense_layer)
+        subclass_0_global_max_pooling_layer_1 = self.sub_class_0_global_max_pooling_1d_layer(subclass_0_bi_lstm_layer_1)
+        subclass_0_dense_layer_1 = self.sub_class_0_dense_layer_1(subclass_0_global_max_pooling_layer_1)
+        # Sub class of main class 0 output
+        subclass_0_output_layer = self.sub_class_0_output_layer(subclass_0_dense_layer_1)
+        
+        # Sub class of main class 1
+        # Get binary mask of main class 1
+        subclass_1_binary_mask =  K.cast(K.equal(main_class_input_argmax, 1), dtype='float32')
+        subclass_1_reshape_binary_mask_1= self.sub_class_1_reshape_binary_mask_1(subclass_1_binary_mask)
+        subclass_1_repeat_binary_mask_1 = self.sub_class_1_repeat_binary_mask_1(subclass_1_reshape_binary_mask_1)
+        subclass_1_reshape_binary_mask_2 = self.sub_class_1_reshape_binary_mask_2(subclass_1_repeat_binary_mask_1)
+        subclass_1_repeat_binary_mask_2 = self.sub_class_1_repeat_binary_mask_2(subclass_1_reshape_binary_mask_2)
+        # Apply binary mask to dropout layer
+        subclass_1_masked_dense_layer = self.sub_class_1_masked_dense_layer([dropout_layer_1, subclass_1_repeat_binary_mask_2])
+        # Sub class of main class 1 prediction
+        subclass_1_bi_lstm_layer_1 = self.sub_class_1_bi_lstm_layer_1(subclass_1_masked_dense_layer)
+        subclass_1_global_max_pooling_layer_1 = self.sub_class_1_global_max_pooling_1d_layer(subclass_1_bi_lstm_layer_1)
+        subclass_1_dense_layer_1 = self.sub_class_1_dense_layer_1(subclass_1_global_max_pooling_layer_1)
+        # Sub class of main class 1 output
+        subclass_1_output_layer = self.sub_class_1_output_layer(subclass_1_dense_layer_1)
+        
+        # Sub class of main class 2
+        # Get binary mask of main class 2
+        subclass_2_binary_mask =  K.cast(K.equal(main_class_input_argmax, 2), dtype='float32')
+        subclass_2_reshape_binary_mask_1= self.sub_class_2_reshape_binary_mask_1(subclass_2_binary_mask)
+        subclass_2_repeat_binary_mask_1 = self.sub_class_2_repeat_binary_mask_1(subclass_2_reshape_binary_mask_1)
+        subclass_2_reshape_binary_mask_2 = self.sub_class_2_reshape_binary_mask_2(subclass_2_repeat_binary_mask_1)
+        subclass_2_repeat_binary_mask_2 = self.sub_class_2_repeat_binary_mask_2(subclass_2_reshape_binary_mask_2)
+        # Apply binary mask to dropout layer
+        subclass_2_masked_dense_layer = self.sub_class_2_masked_dense_layer([dropout_layer_1, subclass_2_repeat_binary_mask_2])
+        # Sub class of main class 2 prediction
+        subclass_2_bi_lstm_layer_1 = self.sub_class_2_bi_lstm_layer_1(subclass_2_masked_dense_layer)
+        subclass_2_global_max_pooling_layer_1 = self.sub_class_2_global_max_pooling_1d_layer(subclass_2_bi_lstm_layer_1)
+        subclass_2_dense_layer_1 = self.sub_class_2_dense_layer_1(subclass_2_global_max_pooling_layer_1)
+        # Sub class of main class 2 output
+        subclass_2_output_layer = self.sub_class_2_output_layer(subclass_2_dense_layer_1)
+        
+        # Concatenate all outputs
+        concat_layer = self.sub_class_concatenate_layer([subclass_0_output_layer, subclass_1_output_layer, subclass_2_output_layer])
+        
+        # Define model
+        model = Model(inputs=[text_input_layer, main_class_input_layer], outputs=[concat_layer])
         return model
     
     def get_subclass_inference_model(self):
@@ -262,7 +332,7 @@ class MainSubclassPrediction(Model):
         [X_text_train, x_main_class_train], [y_main_class_train, y_sub_class_train] = train_data
         if validation_data is not None:
             [X_text_val, x_main_class_val], [y_main_class_val, y_sub_class_val] = validation_data
-            self.model.fit(x={'text_input_layer': X_text_train,
+            self.training_model.fit(x={'text_input_layer': X_text_train,
                               'main_class_input_layer': x_main_class_train},
                             y={'main_class_output': y_main_class_train,
                                 'sub_class_output': y_sub_class_train},
@@ -273,7 +343,7 @@ class MainSubclassPrediction(Model):
                             epochs=epochs,
                             batch_size=batch_size)
         else:
-            self.model.fit(x={'text_input_layer': X_text_train,
+            self.training_model.fit(x={'text_input_layer': X_text_train,
                              'main_class_input_layer': x_main_class_train},
                             y={'main_class_output': y_main_class_train,
                                 'sub_class_output': y_sub_class_train},
@@ -281,14 +351,15 @@ class MainSubclassPrediction(Model):
                             batch_size=batch_size)
 
         if model_path is not None:
-            self.model.save(model_path)
+            self.training_model.save(model_path)
         
         # Update inference model
         self.main_class_inference_model = self.get_mainclass_inference_model()
         self.sub_class_inference_model = self.get_subclass_inference_model()
+        self.interaction_model = self.get_interaction_model()
 
     def predict_with_main_label(self, X_text, X_main_class):
-        pred_main, pred_sub = self.model.predict({'text_input_layer': X_text, 'main_class_input_layer': X_main_class})
+        pred_main, pred_sub = self.training_model.predict({'text_input_layer': X_text, 'main_class_input_layer': X_main_class})
         pred_main = np.argmax(pred_main, axis=1)
         pred_sub = np.argmax(pred_sub, axis=1)
         return pred_main, pred_sub
@@ -302,6 +373,11 @@ class MainSubclassPrediction(Model):
         pred_main = self.main_class_inference_model.predict(X_text)
         pred_main = np.argmax(pred_main, axis=1)
         return pred_main
+    
+    def predict_interaction(self, X_text, X_main_class):
+        pred_interaction = self.interaction_model.predict({'text_input_layer': X_text, 'main_class_input_layer': X_main_class})
+        pred_interaction = np.argmax(pred_interaction, axis=1)
+        return pred_interaction
     
     def plot_result_mainclass(self, Y_true, Y_pred):
         # Get label names
