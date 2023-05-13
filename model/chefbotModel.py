@@ -400,3 +400,15 @@ class MainSubclassPrediction(Model):
         cm_sub = confusion_matrix(Y_true, Y_pred)
         disp_sub = ConfusionMatrixDisplay(confusion_matrix=cm_sub, display_labels=subclass_label)
         disp_sub.plot()
+        
+    def load_weight_training_model(self, weight_path):
+        self.training_model.load_weights(weight_path)
+    
+    def load_weight_mainclass_inference_model(self, weight_path):
+        self.main_class_inference_model.load_weights(weight_path)
+        
+    def load_weight_subclass_inference_model(self, weight_path):
+        self.sub_class_inference_model.load_weights(weight_path)
+        
+    def load_weight_interaction_model(self, weight_path):
+        self.interaction_model.load_weights(weight_path)
